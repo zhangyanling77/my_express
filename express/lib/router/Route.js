@@ -1,19 +1,22 @@
 const Layer = require('./layer')
+// 存放内层layer
 function Route(){
     this.stack = [];
     // 在这里给route存个属性 标识一下当前route中有那个方法
     this.methods = {};
-}
+};
+// 匹配不同的method
 ['post','put','delete','get'].forEach((method)=>{
     Route.prototype[method] = function(handlers){
         handlers.forEach(handler => {
             let layer = new Layer('',handler);
-            this.methods[method] = true
+            this.methods[method] = true // 标记已经有的方法
             layer.method = method; // 内部的route中要表示当前这一层的方法是什么方法
             this.stack.push(layer);
         });
     }
 })
+// 派发执行得动作
 Route.prototype.dispatch = function(req,res,out){
     // 需要在route中 依次取出layer 看下方法是否ok 如果ok 就执行
     let idx = 0;
@@ -30,4 +33,5 @@ Route.prototype.dispatch = function(req,res,out){
     }
     next();
 }
+
 module.exports = Route;
