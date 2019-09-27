@@ -1,4 +1,5 @@
-const pathToRegExp = require('path-to-regexp');
+const pathToRegExp = require('path-to-regexp'); // 用于处理路径匹配
+
 function Layer(path,handler){
     this.path = path;
     this.handler = handler;
@@ -17,7 +18,7 @@ Layer.prototype.match = function(pathname){
         let [,...matches] = pathname.match(this.regExp);
         if(matches){ // /user/\d+/\d+  /user/1/2
             // 将解析后的params属性 放到当前的layer上
-            // this.keys = [{name:'name'},{name:'age'}]
+            // this.keys = [{name:'name'},{name:'age'}] 这个地方是重点
             this.params = this.keys.reduce((memo,current,index,arr)=>
             (memo[current.name] = matches[index],memo)
             ,{});
