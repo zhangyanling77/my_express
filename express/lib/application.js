@@ -1,11 +1,10 @@
-// 主要的工作  创建应用
+// 创建应用
 const http = require("http");
 const url = require("url");
 let Router = require("./router");
 const path = require("path");
 const fs = require("fs");
-const STATUS_CODES = require("statuses").STATUS_CODES;
-console.log(STATUS_CODES);
+const STATUS_CODES = require("statuses").STATUS_CODES; // 状态码映射库
 // 提供应用 应用和路由的分离
 function Application() {
   this.engines = {
@@ -14,6 +13,7 @@ function Application() {
   };
   this.settings = {};
 }
+// 路由懒加载
 Application.prototype.lazy_route = function() {
   if (!this.router) {
     this.router = new Router();
@@ -21,16 +21,20 @@ Application.prototype.lazy_route = function() {
     this._init();
   }
 };
+// 初始化
 Application.prototype._init = function() {
   // 默认就是第一个中间件
   this.use((req, res, next) => {
+    // sendFile
     res.sendFile = function(filename) {
       fs.createReadStream(filename).pipe(res);
     };
+    // json
     res.json = function(value) {
       res.setHeader("Content-Type", "application/json");
       res.end(JSON.stringify(value));
     };
+    // send
     res.send = function(value) {
       if (typeof value === "object") {
         res.end(JSON.stringify(value));
@@ -41,10 +45,11 @@ Application.prototype._init = function() {
         res.end(value);
       }
     };
+    // render
     res.render = (fielname, obj) => {
       // 实现内置的模板渲染方法
-      let views = this.get("views"); // view
-      let viewEngine = this.get("view engine"); // .html
+      let views = this.get("views") || this.engines['views']; // view 如果没有设置，默认为views
+      let viewEngine = this.get("view engine") || this.engines['view engine']; // .html 如果没有设置，默认为ejs
       let render = this.engines[viewEngine]; // renderFile方法
       let filepath = path.join(views, fielname) + viewEngine;
       render(filepath, obj, function(err, html) {
@@ -54,6 +59,7 @@ Application.prototype._init = function() {
     next();
   });
 };
+// set设置
 Application.prototype.set = function(key, value) {
   // set包含了获取的功能
   if (arguments.length === 1) {
@@ -62,6 +68,7 @@ Application.prototype.set = function(key, value) {
   }
   this.settings[key] = value;
 };
+// 引擎设置
 Application.prototype.engine = function(extname, render) {
   this.engines[extname] = render;
 };
@@ -83,6 +90,7 @@ Application.prototype.param = function(key, handler) {
   this.lazy_route();
   this.router.param(key, handler);
 };
+// 使用中间件
 Application.prototype.use = function(path, handler) {
   this.lazy_route();
   // 如果没有传递路径 直接将路径设置/ ,/表示都能匹配
@@ -92,25 +100,15 @@ Application.prototype.use = function(path, handler) {
   }
   this.router.use(path, handler);
 };
+// 监听
 Application.prototype.listen = function() {
   let server = http.createServer((req, res) => {
     this.lazy_route();
-    // 获取请求的方法 和路径
-    // let m = req.method.toLowerCase();
-    // let pathname = url.parse(req.url).pathname;
+    // 兜底操作
     function done() {
       res.end(`Cannot ${req.method} ${req.url}`);
     }
     this.router.handle_request(req, res, done);
-    // for(let i = 1;i<this.router.length;i++){
-    //     let {method,path,handler} = this.router[i];
-    //     // 如果匹配到就执行 对应的处理函数
-    //     if(m === method && pathname === path){
-    //         return handler(req,res);
-    //     }
-    // }
-    // // 如果炸不到对应的就调用 默认404逻辑
-    // this.router[0].handler(req,res)
   });
   server.listen(...arguments);
 };
