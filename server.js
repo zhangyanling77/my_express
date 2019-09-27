@@ -7,7 +7,8 @@ app.set('view engine','.html');// 默认使用可以使用html文件
 
 app.engine('.html',require('ejs').__express);//如果遇到.html用ejs来渲染
 app.get('/',function(req,res){
-   console.log(req.a)
+   // console.log(req.a) // 扩展
+   // res.send('ok')
    res.sendFile(path.resolve(__dirname,'package.json'))
    // res.send(301);
 })
