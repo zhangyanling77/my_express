@@ -3,7 +3,6 @@ const Layer = require('./layer');
 const Route = require('./Route'); // 每个路由都要有一个route的实例
 function Router(){
     let router =  function(req,res,next){
-        // req.url = '/add'
         router.handle_request(req,res,next); // 当请求到来时 需要到对应的子路由系统中查找
     }
     router.stack = [];
@@ -14,13 +13,15 @@ function Router(){
 }
 
 let proto = {};
+// 添加外层layer
 proto.use = function(path,handler){
     let layer = new Layer(path,handler);
     this.stack.push(layer);
 }
+// 记录当前的路由对象
 proto.route = function(path){
     let route = new Route();
-    // 每次调用get 方法就产生一个layer ,把route放到layer上，当路径匹配到交过对应的route的dispatch方法来吃力
+    // 每次调用get 方法就产生一个layer ,把route放到layer上，当路径匹配到通过对应的route的dispatch方法来处理
     let layer = new Layer(path,route.dispatch.bind(route));
     layer.route = route; // 如果是路由就会配置一个route属性
     this.stack.push(layer);// 将layer存放到stack中
@@ -34,8 +35,9 @@ proto.param = function(key,handler){
         this.paramsCallbacks[key] = [handler];
     }
     console.log(this.paramsCallbacks)
-}
-;['post','put','delete','get'].forEach((method)=>{
+};
+// 匹配对应的方法
+['post','put','delete','get'].forEach((method)=>{
     proto[method] = function(path,handlers){
         if(!Array.isArray(handlers)){
             handlers = [handlers]
@@ -45,7 +47,8 @@ proto.param = function(key,handler){
         route[method](handlers);
         //this.stack.push(layer)
     }
-})
+});
+// 
 proto.process_param = function(req,res,layer,done){
     let params = this.paramsCallbacks // {name:[fn,fn],age:fn}
     let keys = layer.keys.map(item=>item.name); // [{name:name},{ah}]
@@ -84,6 +87,7 @@ proto.process_param = function(req,res,layer,done){
         next();
     }
 }
+// 处理路由
 proto.handle_request = function(req,res,out){
     let idx = 0;
     let removed  = '';
@@ -128,7 +132,7 @@ proto.handle_request = function(req,res,out){
                         next();
                     }
                 }else{ // 如果中间件 路径匹配到了就执行
-                    if(layer.handler.length!==4){
+                    if(layer.handler.length !== 4){
                         // 是中间件可能会出现二级路由的情况 ，需要把当前中间件的路径 从当前url删除掉
                         if(layer.path !== '/'){ // 如果这个中间件是/就不要删除 
                             removed = layer.path; // /user  /user/add
@@ -141,15 +145,6 @@ proto.handle_request = function(req,res,out){
                 next();
             }
         }
-        
-
-    //    if( && ){
-    //        // 如果匹配就执行
-    //     layer.handler(req,res,next); // 把当前外层的next 传递给 route中
-    //    }else{
-    //        // 匹配不到找下一个
-    //        next();
-    //    }
     }
     next(0);
 }
